@@ -28,5 +28,15 @@ public class PostController {
         return postService.createPost(dto);
     }
 
+    // Get all posts for the logged-in user
+    @GetMapping("/byLoggedInUser")
+    public List<PostDTO> getUserPostsByLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        return postService.getPostsByUserEmail(userEmail);
+    }
 
+
+
+    
 }
