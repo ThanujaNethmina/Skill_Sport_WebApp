@@ -53,5 +53,11 @@ public class StatusController {
             return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
         }
     }
+
+    @GetMapping("/getAllStatus")
+    public ResponseEntity<List<Status>> getAllStatus() {
+        List<Status> allStatus = statusService.getAllStatus();
+        return ResponseEntity.ok(allStatus);
+    }
     
 }
