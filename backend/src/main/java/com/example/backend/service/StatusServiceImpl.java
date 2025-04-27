@@ -7,6 +7,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,26 +42,41 @@ public class StatusServiceImpl implements StatusService {
         List<Status> allStatuses = statusRepository.findAll();
 
         // Filter out the expired statuses
-        List<Status> nonExpiredStatuses = allStatuses.stream()
+        return allStatuses.stream()
                 .filter(status -> status.getExpiredAt().after(currentDate))
                 .collect(Collectors.toList());
-
-        return nonExpiredStatuses;
     }
 
     @Override
     public void deleteExpiredStatuses() {
         Date currentDate = new Date();
         List<Status> expiredStatuses = statusRepository.findByExpiredAtBefore(currentDate);
+
         for (Status status : expiredStatuses) {
-            // Delete the image file
-            String imagePath = "status/" + status.getId() + ".jpg";
-            File imageFile = new File(imagePath);
-            if (imageFile.exists()) {
-                imageFile.delete();
-            }
+            deleteStatusById(status.getId()); // Call the new method for cleanup
         }
-        statusRepository.deleteAll(expiredStatuses);
+    }
+
+    @Override
+    public void deleteStatusById(String id) {
+        try {
+            Status status = getStatusById(id);
+            if (status == null) {
+                return; // No need to delete if status is not found
+            }
+
+            // Delete the associated image file
+            String imagePath = "status/" + id + ".jpg";
+            Path path = Paths.get(imagePath);
+            if (Files.exists(path)) {
+                Files.delete(path);
+            }
+
+            // Delete the status from the database
+            statusRepository.deleteById(id);
+        } catch (Exception e) {
+            System.err.println("Error deleting status with ID " + id + ": " + e.getMessage());
+        }
     }
 
     @Scheduled(cron = "*/50 * * * * *") //"0 */10 * * * *"
