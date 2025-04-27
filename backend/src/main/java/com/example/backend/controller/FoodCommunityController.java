@@ -130,4 +130,20 @@ public class FoodCommunityController {
         communityPostRepository.save(post);
 
         return ResponseEntity.ok("Post liked successfully.");
-    }  }
+    } 
+
+     // Update a community
+     @PutMapping("/{id}")
+     public ResponseEntity<FoodCommunity> updateCommunity(@PathVariable String id, @RequestBody FoodCommunity updatedCommunity) {
+         return foodCommunityRepository.findById(id)
+                 .map(community -> {
+                     community.setName(updatedCommunity.getName());
+                     community.setDescription(updatedCommunity.getDescription());
+                     foodCommunityRepository.save(community);
+                     return ResponseEntity.ok(community);
+                 })
+                 .orElseGet(() -> ResponseEntity.notFound().build());
+     }
+
+
+}
