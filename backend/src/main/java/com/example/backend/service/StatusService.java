@@ -11,11 +11,9 @@ public interface StatusService {
 
     void updateStatus(Status status);
 
-
     List<Status> getAllStatus();
 
     void deleteExpiredStatuses();
 
+    void deleteStatusById(String id);
 }
-
-

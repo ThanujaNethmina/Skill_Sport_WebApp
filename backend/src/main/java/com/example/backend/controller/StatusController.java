@@ -82,5 +82,36 @@ public class StatusController {
             return ResponseEntity.status(400).body("Error: " + e.getMessage());
         }
     }
+
+    @DeleteMapping("/deleteStory")
+    public ResponseEntity<?> deleteStory(@RequestParam("id") String storyId,
+                                         @RequestParam("userid") String userId) {
+        try {
+            Status status = statusService.getStatusById(storyId);
+            if (status == null) {
+                return ResponseEntity.status(404).body("Story not found");
+            }
+
+            if (!status.getUserId().equals(userId)) {
+                return ResponseEntity.status(403).body("You are not authorized to delete this story");
+            }
+
+            // Delete the image file if exists
+            String uploadsDir = "status/";
+            String filePath = uploadsDir + storyId + ".jpg";
+            Path path = Paths.get(filePath);
+            if (Files.exists(path)) {
+                Files.delete(path);
+            }
+
+            // Delete the status from database
+            statusService.deleteStatusById(storyId);
+
+            return ResponseEntity.ok("Story deleted successfully");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error deleting story: " + e.getMessage());
+        }
+    }
     
 }
+
