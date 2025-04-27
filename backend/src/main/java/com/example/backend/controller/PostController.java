@@ -64,5 +64,16 @@ public class PostController {
             return ResponseEntity.noContent().build();
         }
     
+        // Update the visibility of a post
+        @PutMapping("/{id}/visibility")
+        public ResponseEntity<Post> updateVisibility(@PathVariable String id, @RequestBody Map<String, Boolean> body) {
+            Boolean isPublic = body.get("isPublic");
+            if (isPublic == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            Post updatedPost = postService.updateVisibility(id, isPublic);
+            return ResponseEntity.ok(updatedPost);
+        }
+    
 
 }
