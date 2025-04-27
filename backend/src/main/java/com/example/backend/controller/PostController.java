@@ -36,7 +36,19 @@ public class PostController {
         return postService.getPostsByUserEmail(userEmail);
     }
 
+    // Update a post
+    @PutMapping("/{id}")
+    public ResponseEntity<Post> updatePost(@PathVariable String id, @RequestBody PostDTO dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        
+        if (!postService.isPostOwnedByUser(id, userEmail)) {
+            return ResponseEntity.status(403).build();
+        }
+        
+        Post updatedPost = postService.updatePost(id, dto);
+        return ResponseEntity.ok(updatedPost);
+    }
 
 
-    
 }
