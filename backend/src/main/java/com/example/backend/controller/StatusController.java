@@ -59,5 +59,28 @@ public class StatusController {
         List<Status> allStatus = statusService.getAllStatus();
         return ResponseEntity.ok(allStatus);
     }
+
+    @PatchMapping("/updateStory")
+    public ResponseEntity<?> updateStory(@RequestBody Map<String, String> requestBody) {
+        String storyId = requestBody.get("id");
+
+        try {
+            Status status = statusService.getStatusById(storyId);
+            if (status == null) {
+                return ResponseEntity.status(404).body("Story not found");
+            }
+
+
+            String description = requestBody.get("description");
+        
+            status.setDescription(description);
+            
+            statusService.updateStatus(status);
+
+            return ResponseEntity.ok("Story details updated successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error: " + e.getMessage());
+        }
+    }
     
 }
