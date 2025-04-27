@@ -145,5 +145,16 @@ public class FoodCommunityController {
                  .orElseGet(() -> ResponseEntity.notFound().build());
      }
 
+      // Delete a community
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteCommunity(@PathVariable String id) {
+        FoodCommunity community = foodCommunityRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Community not found"));
+
+        community.cleanUpMembers();
+        foodCommunityRepository.deleteById(id);
+        return ResponseEntity.ok("Community deleted successfully.");
+    }
+
 
 }
