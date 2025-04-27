@@ -75,5 +75,9 @@ public class PostController {
             return ResponseEntity.ok(updatedPost);
         }
     
-
+        // Get only public posts for the home page
+        @GetMapping("/public")
+        public List<PostDTO> getPublicPosts() {
+            return postService.getPublicPosts();
+        }
 }
