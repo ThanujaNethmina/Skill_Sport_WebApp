@@ -18,5 +18,40 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/story")
 public class StatusController {
+
+    @Autowired
+    private StatusService statusService;
+
+    @PostMapping("/createStory")
+    public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
+                                              @RequestParam("userid") String userId,
+                                              @RequestParam("description") String description,
+                                              @RequestParam("uname") String uname
+                                              ) {
+
+
+        try {
+            String uploadsDir = "status/";
+
+            String fileName = image.getOriginalFilename();
+
+            Status status = new Status(description, userId ,uname);
+
+            Status createdStory = statusService.addStatus(status);
+
+            String storyId = createdStory.getId();
+            String filePath = uploadsDir + storyId + ".jpg";
+
+            Path path = Paths.get(filePath);
+            Files.write(path, image.getBytes());
+
+            status.setImageUrl(filePath);
+            statusService.updateStatus(status);
+
+            return ResponseEntity.ok("Story created successfully");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
+        }
+    }
     
 }
