@@ -50,5 +50,19 @@ public class PostController {
         return ResponseEntity.ok(updatedPost);
     }
 
+        // Delete a post
+        @DeleteMapping("/{id}")
+        public ResponseEntity<Void> deletePost(@PathVariable String id) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userEmail = authentication.getName();
+            
+            if (!postService.isPostOwnedByUser(id, userEmail)) {
+                return ResponseEntity.status(403).build();
+            }
+            
+            postService.deletePost(id);
+            return ResponseEntity.noContent().build();
+        }
+    
 
 }
