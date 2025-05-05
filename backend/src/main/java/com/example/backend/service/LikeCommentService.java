@@ -4,7 +4,6 @@ import com.example.backend.exception.CommentNotFoundException;
 import com.example.backend.exception.UnauthorizedException;
 import com.example.backend.model.LikeComment;
 import com.example.backend.repository.LikeCommentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -16,7 +15,6 @@ public class LikeCommentService {
 
     private final LikeCommentRepository likeCommentRepository;
 
-    @Autowired
     public LikeCommentService(LikeCommentRepository likeCommentRepository) {
         this.likeCommentRepository = likeCommentRepository;
     }

@@ -3,14 +3,16 @@ import Navbar from "./Navbar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { FiHeart, FiMessageSquare, FiShare2, FiMoreHorizontal, FiEdit, FiTrash2, FiUserPlus, FiUser, FiPlus, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiHeart, FiMessageSquare, FiShare2, FiMoreHorizontal, FiEdit, FiTrash2, FiUserPlus, FiUser, FiPlus, FiChevronDown, FiChevronUp, FiUsers } from "react-icons/fi";
 import { FaHeart, FaRunning, FaSwimmer, FaBasketballBall, FaFutbol } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Home = () => {
+  const [users, setUsers] = useState([]); 
   const [username, setUsername] = useState("");
   const [userId, setUserId] = useState("");
+  const [isFollowing, setIsFollowing] = useState({});
   const [sportCommunities, setSportCommunities] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newCommunity, setNewCommunity] = useState({ name: "", description: "" });
@@ -19,6 +21,7 @@ const Home = () => {
   const [editingComment, setEditingComment] = useState({ id: null, content: "" });
   const [expandedComments, setExpandedComments] = useState({});
   const [expandedPosts, setExpandedPosts] = useState({});
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
   const navigate = useNavigate();
@@ -43,9 +46,31 @@ const Home = () => {
       navigate("/login");
       return;
     }
-    
+
+    fetchUsers();
     fetchData();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:8080/api/users/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsers(response.data);
+      
+      // Check follow status for each user
+      const followStatus = {};
+      response.data.forEach(user => {
+        followStatus[user.id] = user.isFollowing;
+      });
+      setIsFollowing(followStatus);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -55,6 +80,56 @@ const Home = () => {
       console.error("Error fetching data:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+
+  const handleFollow = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const res = await axios.post(
+        `http://localhost:8080/api/users/${userId}/follow`,
+        {}, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      if (err.response?.status === 401) {
+        alert("Session expired. Please log in again.");
+        navigate("/login");
+      }
+    }
+  };
+
+  const getSportIcon = (skills) => {
+    if (!skills || !Array.isArray(skills) || skills.length === 0) {
+      return <FiUser className="text-purple-500" />;
+    }
+    const firstSkill = skills[0]?.sport;
+    if (!firstSkill || typeof firstSkill !== 'string') {
+      return <FiUser className="text-purple-500" />;
+    }
+  
+    // Now we can safely call toLowerCase()
+    switch(firstSkill.toLowerCase()) {
+      case 'basketball':
+        return <FaBasketballBall className="text-orange-500" />;
+      case 'soccer':
+        return <FaFutbol className="text-green-500" />;
+      case 'running':
+        return <FaRunning className="text-blue-500" />;
+      case 'swimming':
+        return <FaSwimmer className="text-cyan-500" />;
+      default:
+        return <FiUser className="text-purple-500" />;
     }
   };
 
@@ -299,21 +374,6 @@ const Home = () => {
     }
   };
 
-  const getSportIcon = (sportName) => {
-    switch(sportName.toLowerCase()) {
-      case 'basketball':
-        return <FaBasketballBall className="text-orange-500" />;
-      case 'soccer':
-        return <FaFutbol className="text-green-500" />;
-      case 'tennis':
-        return <FaRunning className="text-blue-500" />;
-      case 'swimming':
-        return <FaSwimmer className="text-cyan-500" />;
-      default:
-        return <FiUser className="text-purple-500" />;
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-blue-50">
@@ -346,26 +406,42 @@ const Home = () => {
                   Athletes Near You
                 </h2>
                 <ul className="space-y-4">
-                  {athletesToConnect.map((athlete) => (
-                    <li key={athlete.id} className="bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
+                  {users.map((user) => (
+                    <li key={user.id} className="bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
                       <div className="flex items-start gap-3">
                         <div className="bg-white p-2 rounded-full shadow-sm">
-                          {athlete.icon}
+                          {getSportIcon(user.skills)}
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-blue-900">{athlete.name}</h3>
+                          <h3 className="font-semibold text-blue-900">{user.username}</h3>
                           <p className="text-sm text-blue-700 flex items-center gap-1">
-                            {athlete.icon}
-                            {athlete.sport}
+                            {user.skills?.length > 0 ? (
+                              <>
+                                {getSportIcon(user.skills)}
+                                {user.skills[0].sport}
+                              </>
+                            ) : "No sport specified"}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">{athlete.skills}</p>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-xs text-gray-500">
+                              {user.followersCount} followers
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {user.followingCount} following
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <button 
-                        className="mt-3 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2"
+                        onClick={() => handleFollow(user.id)}
+                        className={`mt-3 w-full py-2 px-4 rounded-lg text-sm transition-all flex items-center justify-center gap-2 ${
+                          isFollowing[user.id] 
+                            ? "bg-gray-200 text-gray-800 hover:bg-gray-300" 
+                            : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
+                        }`}
                       >
                         <FiUserPlus size={14} />
-                        Connect
+                        {isFollowing[user.id] ? "Following" : "Follow"}
                       </button>
                     </li>
                   ))}
@@ -383,7 +459,7 @@ const Home = () => {
                       onClick={() => setActiveTab("posts")}
                       className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === "posts" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
                     >
-                      Community Posts
+                      Shared Posts
                     </button>
                     <button
                       onClick={() => setActiveTab("activities")}
@@ -491,7 +567,6 @@ const Home = () => {
                                   <span>Share</span>
                                 </button>
                               </div>
-
                               {/* Comments Section */}
                               <div className={`transition-all duration-300 overflow-hidden ${expandedComments[post.id] ? 'max-h-[500px]' : 'max-h-0'}`}>
                                 <div className="mt-4">
@@ -547,7 +622,7 @@ const Home = () => {
                                                 <p className="text-gray-600 mt-1 whitespace-pre-wrap">
                                                   {comment.comment}
                                                 </p>
-                                                {comment.isCurrentUser && (
+                                                {comment.userId === userId && (
                                                   <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                       onClick={() => handleEditComment(comment)}
