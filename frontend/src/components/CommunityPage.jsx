@@ -252,7 +252,7 @@ const CommunityPage = () => {
                       placeholder="Community Name"
                       value={editCommunity.name}
                       onChange={handleEditChange}
-                      className="w-full mb-3 p-3 bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent text-xl font-bold"
+                      className="w-full mb-3 p-3 bg-blue bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent text-xl font-bold"
                       required
                     />
                     <textarea
@@ -260,7 +260,7 @@ const CommunityPage = () => {
                       placeholder="Community Description"
                       value={editCommunity.description}
                       onChange={handleEditChange}
-                      className="w-full p-3 bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent"
+                      className="w-full p-3 bg-blue bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent"
                       rows="2"
                       required
                     />
@@ -311,13 +311,13 @@ const CommunityPage = () => {
                   <>
                     <button
                       onClick={handleUpdateCommunity}
-                      className="flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-lg hover:bg-gray-100 transition font-medium"
+                      className="flex items-center gap-2 bg-green bg-opacity-20  text-white px-5 py-2.5 rounded-lg hover:bg-gray transition font-medium"
                     >
                       Save Changes
                     </button>
                     <button
                       onClick={() => setEditMode(false)}
-                      className="flex items-center gap-2 bg-white bg-opacity-20 text-white px-5 py-2.5 rounded-lg hover:bg-opacity-30 transition font-medium"
+                      className="flex items-center gap-2 bg-black bg-opacity-20 text-white px-5 py-2.5 rounded-lg hover:bg-red transition font-medium"
                     >
                       Cancel
                     </button>
