@@ -22,37 +22,38 @@ public class StatusController {
     @Autowired
     private StatusService statusService;
 
-    @PostMapping("/createStory")
-    public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
-                                              @RequestParam("userid") String userId,
-                                              @RequestParam("description") String description,
-                                              @RequestParam("uname") String uname
-                                              ) {
+@PostMapping("/createStory")
+public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
+                                          @RequestParam("userid") String userId,
+                                          @RequestParam("description") String description,
+                                          @RequestParam("uname") String uname) {
 
+    try {
+        String uploadsDir = "status/";
 
-        try {
-            String uploadsDir = "status/";
+        String fileName = image.getOriginalFilename();
 
-            String fileName = image.getOriginalFilename();
+        Status status = new Status(description, userId, uname);
+        Status createdStory = statusService.addStatus(status);
 
-            Status status = new Status(description, userId ,uname);
+        String storyId = createdStory.getId();
+        String filePath = uploadsDir + storyId + ".jpg";
 
-            Status createdStory = statusService.addStatus(status);
+        Path path = Paths.get(filePath);
+        Files.write(path, image.getBytes());
 
-            String storyId = createdStory.getId();
-            String filePath = uploadsDir + storyId + ".jpg";
+        // ✅ Log the full absolute path for debugging
+        System.out.println("✅ Saved image to: " + path.toAbsolutePath());
 
-            Path path = Paths.get(filePath);
-            Files.write(path, image.getBytes());
+        status.setImageUrl(filePath);
+        statusService.updateStatus(status);
 
-            status.setImageUrl(filePath);
-            statusService.updateStatus(status);
-
-            return ResponseEntity.ok("Story created successfully");
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
-        }
+        return ResponseEntity.ok("Story created successfully");
+    } catch (IOException e) {
+        return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
     }
+}
+
 
     @GetMapping("/getAllStatus")
     public ResponseEntity<List<Status>> getAllStatus() {
