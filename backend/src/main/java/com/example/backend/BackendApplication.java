@@ -13,4 +13,5 @@ public class BackendApplication {
         System.setProperty("GOOGLE_CLIENT_SECRET", dotenv.get("GOOGLE_CLIENT_SECRET"));
         SpringApplication.run(BackendApplication.class, args);
     }
+    
 }
