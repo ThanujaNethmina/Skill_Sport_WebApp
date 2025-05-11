@@ -16,7 +16,7 @@ public class LikeComment {
     private String comment;
     private Date createdAt = new Date();
 
-    // Getters and Setters
+     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getPostId() { return postId; }
@@ -31,4 +31,5 @@ public class LikeComment {
     public void setComment(String comment) { this.comment = comment; }
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+
 }
