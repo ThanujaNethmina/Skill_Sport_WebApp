@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    // ✅ CORS Configuration
+    // ✅ Enable CORS for frontend on localhost:5173
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -18,10 +18,10 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(true);
     }
 
-    // ✅ Static Resource Mapping (for story images)
+    // ✅ Map requests to /status/** to the local filesystem folder ./status/
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/status/**")
-                .addResourceLocations("./status/");
+                .addResourceLocations("file:status/");
     }
 }
