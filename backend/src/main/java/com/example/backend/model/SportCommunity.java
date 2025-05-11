@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Document(collection = "Sport_Communities")
-public class FoodCommunity {
+public class SportCommunity {
 
     @Id
     private String id;
