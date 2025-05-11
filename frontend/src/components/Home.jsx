@@ -27,6 +27,8 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
   const navigate = useNavigate();
+  const [communitySearch, setCommunitySearch] = useState("");
+
 
   // Sample data for athletes to connect with
   const athletesToConnect = [
@@ -735,6 +737,16 @@ const Home = () => {
                   </button>
                 </div>
 
+                {/* Search Input */}
+                <input
+                  type="text"
+                  placeholder="Search communities..."
+                  value={communitySearch}
+                  onChange={(e) => setCommunitySearch(e.target.value)}
+                  className="mb-4 w-full border border-blue-200 p-2 rounded-md text-sm focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                />
+
+                {/* Community Creation Form */}
                 {showForm && (
                   <form onSubmit={handleCreateCommunity} className="mb-6 bg-blue-50 p-4 rounded-lg">
                     <input
@@ -762,50 +774,50 @@ const Home = () => {
                   </form>
                 )}
 
+                {/* Filtered Community List */}
                 <div className="space-y-4">
-                  {sportCommunities.length > 0 ? (
-                    sportCommunities.map((community) => (
-                      <div 
-                        key={community.id} 
-                        className="border border-blue-100 rounded-lg p-4 hover:bg-blue-50 transition cursor-pointer"
-                        onClick={() => navigate(`/community/${community.id}`)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
-                            {getSportIcon(community.name)}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-blue-900">{community.name}</h3>
-                            <p className="text-sm text-gray-600 my-1 line-clamp-2">{community.description}</p>
-                            <div className="flex justify-between items-center mt-2">
-                              <span className="text-xs text-blue-600">
-                                {community.members?.length || 0} members
-                              </span>
-                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                View
-                              </span>
+                  {sportCommunities
+                    .filter((community) =>
+                      community.name.toLowerCase().includes(communitySearch.toLowerCase())
+                    ).length > 0 ? (
+                    sportCommunities
+                      .filter((community) =>
+                        community.name.toLowerCase().includes(communitySearch.toLowerCase())
+                      )
+                      .map((community) => (
+                        <div
+                          key={community.id}
+                          className="border border-blue-100 rounded-lg p-4 hover:bg-blue-50 transition cursor-pointer"
+                          onClick={() => navigate(`/community/${community.id}`)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                              {getSportIcon(community.name)}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-blue-900">{community.name}</h3>
+                              <p className="text-sm text-gray-600 my-1 line-clamp-2">{community.description}</p>
+                              <div className="flex justify-between items-center mt-2">
+                                <span className="text-xs text-blue-600">
+                                  {community.members?.length || 0} members
+                                </span>
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  View
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))
                   ) : (
                     <div className="text-center py-6">
-                      <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                        <FiUser className="text-blue-500 text-2xl" />
-                      </div>
-                      <p className="text-gray-500">No communities yet</p>
-                      <button
-                        onClick={() => setShowForm(true)}
-                        className="mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm"
-                      >
-                        Create your first community
-                      </button>
+                      <p className="text-gray-500">No communities match your search</p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
