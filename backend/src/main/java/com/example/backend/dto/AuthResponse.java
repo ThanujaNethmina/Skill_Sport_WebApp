@@ -3,7 +3,6 @@ package com.example.backend.dto;
 public class AuthResponse {
     private String token;
     private String message;
-    private String userId;
 
     // Constructors
     public AuthResponse() {}
@@ -12,10 +11,9 @@ public class AuthResponse {
         this.token = token;
     }
 
-    public AuthResponse(String token, String message, String userId) {
+    public AuthResponse(String token, String message) {
         this.token = token;
         this.message = message;
-        this.userId = userId;
     }
 
     // Getters and Setters
@@ -25,14 +23,6 @@ public class AuthResponse {
 
     public void setToken(String token) {
         this.token = token;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     public String getMessage() {
