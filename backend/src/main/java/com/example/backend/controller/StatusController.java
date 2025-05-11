@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,43 +16,42 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/story")
+@CrossOrigin(origins = "http://localhost:5173")  // Allow CORS from frontend
 public class StatusController {
 
     @Autowired
     private StatusService statusService;
 
-@PostMapping("/createStory")
-public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
-                                          @RequestParam("userid") String userId,
-                                          @RequestParam("description") String description,
-                                          @RequestParam("uname") String uname) {
+    @PostMapping("/createStory")
+    public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
+                                              @RequestParam("userid") String userId,
+                                              @RequestParam("description") String description,
+                                              @RequestParam("uname") String uname) {
+        try {
+            String uploadsDir = "status/";
+            String fileName = image.getOriginalFilename();
 
-    try {
-        String uploadsDir = "status/";
+            // Save status info to DB
+            Status status = new Status(description, userId, uname);
+            Status createdStory = statusService.addStatus(status);
 
-        String fileName = image.getOriginalFilename();
+            String storyId = createdStory.getId();
+            String filePath = uploadsDir + storyId + ".jpg";
 
-        Status status = new Status(description, userId, uname);
-        Status createdStory = statusService.addStatus(status);
+            // Save image to disk
+            Path path = Paths.get(filePath);
+            Files.write(path, image.getBytes());
+            System.out.println("✅ Saved image to: " + path.toAbsolutePath());
 
-        String storyId = createdStory.getId();
-        String filePath = uploadsDir + storyId + ".jpg";
+            // Update status with image path
+            createdStory.setImageUrl(filePath);
+            statusService.updateStatus(createdStory);
 
-        Path path = Paths.get(filePath);
-        Files.write(path, image.getBytes());
-
-        // ✅ Log the full absolute path for debugging
-        System.out.println("✅ Saved image to: " + path.toAbsolutePath());
-
-        status.setImageUrl(filePath);
-        statusService.updateStatus(status);
-
-        return ResponseEntity.ok("Story created successfully");
-    } catch (IOException e) {
-        return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
+            return ResponseEntity.ok("Story created successfully");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
+        }
     }
-}
-
 
     @GetMapping("/getAllStatus")
     public ResponseEntity<List<Status>> getAllStatus() {
@@ -73,8 +71,7 @@ public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile i
                 return ResponseEntity.status(404).body("Story not found");
             }
 
-            // Check if the story belongs to the user
-            if (!status.getUname().equals(uname)) {
+            if (!status.getUname().trim().equals(uname.trim())) {
                 return ResponseEntity.status(403).body("You are not authorized to update this story");
             }
 
@@ -83,21 +80,20 @@ public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile i
 
             return ResponseEntity.ok("Story updated successfully");
         } catch (Exception e) {
-            return ResponseEntity.status(400).body("Error: " + e.getMessage());
+            return ResponseEntity.status(400).body("Error updating story: " + e.getMessage());
         }
     }
 
-
     @DeleteMapping("/deleteStory")
     public ResponseEntity<?> deleteStory(@RequestParam("id") String storyId,
-                                        @RequestParam("uname") String uname) {
+                                         @RequestParam("uname") String uname) {
         try {
             Status status = statusService.getStatusById(storyId);
             if (status == null) {
                 return ResponseEntity.status(404).body("Story not found");
             }
 
-            if (!status.getUname().equals(uname)) {
+            if (!status.getUname().trim().equals(uname.trim())) {
                 return ResponseEntity.status(403).body("You are not authorized to delete this story");
             }
 
@@ -114,7 +110,4 @@ public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile i
             return ResponseEntity.status(500).body("Error deleting story: " + e.getMessage());
         }
     }
-
-    
 }
-
