@@ -3,14 +3,24 @@ import Navbar from "./Navbar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+ Likes&Comment
 import { FiHeart, FiMessageSquare, FiShare2, FiEdit, FiTrash2, FiUserPlus, FiUser, FiPlus, FiChevronDown, FiChevronUp } from "react-icons/fi";
+
+import { FiHeart, FiMessageSquare, FiShare2, FiMoreHorizontal, FiEdit, FiTrash2, FiUserPlus, FiUser, FiPlus, FiChevronDown, FiChevronUp, FiUsers } from "react-icons/fi";
+main
 import { FaHeart, FaRunning, FaSwimmer, FaBasketballBall, FaFutbol } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Story from "./Status";
+
 
 const Home = () => {
+Likes&Comment
   // ... (other state declarations remain unchanged)
   const [users, setUsers] = useState([]);
+
+  const [users, setUsers] = useState([]); 
+ main
   const [username, setUsername] = useState("");
   const [userId, setUserId] = useState("");
   const [isFollowing, setIsFollowing] = useState({});
@@ -22,6 +32,7 @@ const Home = () => {
   const [editingComment, setEditingComment] = useState({ id: null, content: "" });
   const [expandedComments, setExpandedComments] = useState({});
   const [expandedPosts, setExpandedPosts] = useState({});
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
   const navigate = useNavigate();
@@ -84,6 +95,7 @@ const Home = () => {
     }
   };
 
+ Likes&Comment
   const showUnauthorizedAlert = (message) => {
     setUnauthorizedAlert({ show: true, message });
     setTimeout(() => {
@@ -97,6 +109,8 @@ const Home = () => {
       setSuccessAlert({ show: false, message: "" });
     }, 5000); // Hide after 5 seconds
   };
+
+ main
 
   const handleFollow = async (userId) => {
     try {
@@ -455,6 +469,7 @@ const Home = () => {
         )}
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-8 font-sans">
         <div className="max-w-7xl mx-auto">
+        <Story />
           {/* Welcome Header */}
           <div className="mb-8 text-center bg-white rounded-xl shadow-sm p-6">
             <h1 className="text-3xl md:text-4xl font-bold text-blue-800 mb-2">
@@ -713,9 +728,50 @@ const Home = () => {
                                                     </span>
                                                   </button>
                                                 </div>
+ Likes&Comment
                                     
                                             </>
                                           )}
+
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <div className="flex justify-between">
+                                                  <span className="font-medium text-blue-900">
+                                                    {comment.username}
+                                                  </span>
+                                                  <span className="text-xs text-gray-400">
+                                                    {comment.createdAt &&
+                                                      formatDistanceToNow(new Date(comment.createdAt), {
+                                                        addSuffix: true,
+                                                      })}
+                                                  </span>
+                                                </div>
+                                                <p className="text-gray-600 mt-1 whitespace-pre-wrap">
+                                                  {comment.comment}
+                                                </p>
+                                                {comment.userId === userId && (
+                                                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                      onClick={() => handleEditComment(comment)}
+                                                      className="text-blue-600 hover:text-blue-800 p-1 transition"
+                                                      title="Edit comment"
+                                                    >
+                                                      <FiEdit size={16} />
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleDeleteComment(comment.id)}
+                                                      className="text-red-600 hover:text-red-800 p-1 transition"
+                                                      title="Delete comment"
+                                                    >
+                                                      <FiTrash2 size={16} />
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
+                                          </div>
+ main
                                         </div>
                                       </div>
                                     ))}

@@ -2,10 +2,15 @@ package com.example.backend.service;
 
 import com.example.backend.exception.CommentNotFoundException;
 import com.example.backend.exception.UnauthorizedException;
+ Likes&Comment
 import com.example.backend.model.*;
 import com.example.backend.repository.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.example.backend.model.LikeComment;
+import com.example.backend.repository.LikeCommentRepository;
+ main
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +26,7 @@ public class LikeCommentService {
 
     private final LikeCommentRepository likeCommentRepository;
 
+ Likes&Comment
     @Autowired
     private NotificationRepository notificationRepository;
 
@@ -30,6 +36,7 @@ public class LikeCommentService {
     @Autowired
     private UserRepository userRepository;
 
+ main
     public LikeCommentService(LikeCommentRepository likeCommentRepository) {
         this.likeCommentRepository = likeCommentRepository;
     }
