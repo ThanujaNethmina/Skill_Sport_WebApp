@@ -1,6 +1,10 @@
 // components/Navbar.jsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+ Likes&Comment
+import NotificationDropdown from "./NotificationCenter";
+
+ main
 
 const Navbar = () => {
   // State for user data
@@ -70,13 +74,83 @@ const Navbar = () => {
 
           <div className="hidden md:flex space-x-8">
             <Link to="/" className="text-gray-600 hover:text-[#F97316] font-medium">Home</Link>
+ Likes&Comment
+
             <Link to="/explore" className="text-gray-600 hover:text-[#F97316] font-medium">Explore</Link>
+ main
             <Link to="/profile" className="text-gray-600 hover:text-[#F97316] font-medium">Profile</Link>
             <Link to="/learning" className="text-gray-600 hover:text-[#F97316] font-medium">LearningPlans</Link>
           </div>
 
           <div className="flex items-center space-x-4">
             {userData.username ? (
+Likes&Comment
+              <>
+                {/* Notification Bell Icon - Only shown for logged-in users */}
+                <div className="mr-2">
+                  <NotificationDropdown />
+                </div>
+
+                <div className="relative dropdown-container">
+                  <div className="flex items-center space-x-2">
+                    <span className="hidden md:block text-gray-700 font-medium">
+                      {userData.firstName} <span role="img" aria-label="wave"></span>
+                    </span>
+                    <button 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="focus:outline-none"
+                    >
+                      {userData.photoURL ? (
+                        <>
+                          <img
+                            src={userData.photoURL}
+                            alt={userData.username}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-[#F97316] cursor-pointer"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden bg-[#F97316] text-white w-10 h-10 rounded-full items-center justify-center font-bold cursor-pointer">
+                            {userData.firstName.charAt(0).toUpperCase()}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="bg-[#F97316] text-white w-10 h-10 flex items-center justify-center rounded-full font-bold cursor-pointer">
+                          {userData.firstName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <Link
+                        to="/profile"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        Profile
+                      </Link>
+                      <Link
+                        to="/posts"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        Posts
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+
               <div className="relative dropdown-container">
                 <div className="flex items-center space-x-2">
                   <span className="hidden md:block text-gray-700 font-medium">
@@ -142,6 +216,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
+main
             ) : (
               <>
                 <span className="hidden md:block text-gray-700 font-medium">
