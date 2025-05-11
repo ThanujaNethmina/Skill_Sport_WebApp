@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/communities")
@@ -27,7 +26,7 @@ public class FoodCommunityController {
     private CommunityPostRepository communityPostRepository;
 
     @Autowired
-    private FoodCommunityService foodCommunityService;  // Inject FoodCommunityService properly
+    private FoodCommunityService foodCommunityService; // Inject FoodCommunityService properly
 
     // Create a new food community
     @PostMapping
@@ -49,13 +48,14 @@ public class FoodCommunityController {
         }
     }
 
-    // Get user's food communities
+    // Get user's communities
     @GetMapping("/user-communities")
     public ResponseEntity<List<FoodCommunity>> getUserCommunities(@RequestParam String userName) {
         try {
             List<FoodCommunity> communities = foodCommunityService.getCommunitiesByUser(userName);
             return ResponseEntity.ok(communities);
         } catch (Exception e) {
+            System.err.println("Error fetching user communities: " + e.getMessage()); // Error log
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
         }
     }
@@ -115,8 +115,8 @@ public class FoodCommunityController {
     // Like a post
     @PostMapping("/{communityId}/posts/{postId}/like")
     public ResponseEntity<String> likePost(@PathVariable String communityId,
-                                           @PathVariable String postId,
-                                           @RequestParam String userName) {
+            @PathVariable String postId,
+            @RequestParam String userName) {
         CommunityPost post = communityPostRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
 
@@ -130,22 +130,23 @@ public class FoodCommunityController {
         communityPostRepository.save(post);
 
         return ResponseEntity.ok("Post liked successfully.");
-    } 
+    }
 
-     // Update a community
-     @PutMapping("/{id}")
-     public ResponseEntity<FoodCommunity> updateCommunity(@PathVariable String id, @RequestBody FoodCommunity updatedCommunity) {
-         return foodCommunityRepository.findById(id)
-                 .map(community -> {
-                     community.setName(updatedCommunity.getName());
-                     community.setDescription(updatedCommunity.getDescription());
-                     foodCommunityRepository.save(community);
-                     return ResponseEntity.ok(community);
-                 })
-                 .orElseGet(() -> ResponseEntity.notFound().build());
-     }
+    // Update a community
+    @PutMapping("/{id}")
+    public ResponseEntity<FoodCommunity> updateCommunity(@PathVariable String id,
+            @RequestBody FoodCommunity updatedCommunity) {
+        return foodCommunityRepository.findById(id)
+                .map(community -> {
+                    community.setName(updatedCommunity.getName());
+                    community.setDescription(updatedCommunity.getDescription());
+                    foodCommunityRepository.save(community);
+                    return ResponseEntity.ok(community);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
-      // Delete a community
+    // Delete a community
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteCommunity(@PathVariable String id) {
         FoodCommunity community = foodCommunityRepository.findById(id)
@@ -155,6 +156,4 @@ public class FoodCommunityController {
         foodCommunityRepository.deleteById(id);
         return ResponseEntity.ok("Community deleted successfully.");
     }
-
-
 }

@@ -22,37 +22,38 @@ public class StatusController {
     @Autowired
     private StatusService statusService;
 
-    @PostMapping("/createStory")
-    public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
-                                              @RequestParam("userid") String userId,
-                                              @RequestParam("description") String description,
-                                              @RequestParam("uname") String uname
-                                              ) {
+@PostMapping("/createStory")
+public ResponseEntity<String> createStory(@RequestParam("image") MultipartFile image,
+                                          @RequestParam("userid") String userId,
+                                          @RequestParam("description") String description,
+                                          @RequestParam("uname") String uname) {
 
+    try {
+        String uploadsDir = "status/";
 
-        try {
-            String uploadsDir = "status/";
+        String fileName = image.getOriginalFilename();
 
-            String fileName = image.getOriginalFilename();
+        Status status = new Status(description, userId, uname);
+        Status createdStory = statusService.addStatus(status);
 
-            Status status = new Status(description, userId ,uname);
+        String storyId = createdStory.getId();
+        String filePath = uploadsDir + storyId + ".jpg";
 
-            Status createdStory = statusService.addStatus(status);
+        Path path = Paths.get(filePath);
+        Files.write(path, image.getBytes());
 
-            String storyId = createdStory.getId();
-            String filePath = uploadsDir + storyId + ".jpg";
+        // ✅ Log the full absolute path for debugging
+        System.out.println("✅ Saved image to: " + path.toAbsolutePath());
 
-            Path path = Paths.get(filePath);
-            Files.write(path, image.getBytes());
+        status.setImageUrl(filePath);
+        statusService.updateStatus(status);
 
-            status.setImageUrl(filePath);
-            statusService.updateStatus(status);
-
-            return ResponseEntity.ok("Story created successfully");
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
-        }
+        return ResponseEntity.ok("Story created successfully");
+    } catch (IOException e) {
+        return ResponseEntity.status(500).body("Error creating story: " + e.getMessage());
     }
+}
+
 
     @GetMapping("/getAllStatus")
     public ResponseEntity<List<Status>> getAllStatus() {
@@ -63,6 +64,8 @@ public class StatusController {
     @PatchMapping("/updateStory")
     public ResponseEntity<?> updateStory(@RequestBody Map<String, String> requestBody) {
         String storyId = requestBody.get("id");
+        String uname = requestBody.get("uname");
+        String newDescription = requestBody.get("description");
 
         try {
             Status status = statusService.getStatusById(storyId);
@@ -70,17 +73,48 @@ public class StatusController {
                 return ResponseEntity.status(404).body("Story not found");
             }
 
+            // Check if the story belongs to the user
+            if (!status.getUname().equals(uname)) {
+                return ResponseEntity.status(403).body("You are not authorized to update this story");
+            }
 
-            String description = requestBody.get("description");
-        
-            status.setDescription(description);
-            
+            status.setDescription(newDescription);
             statusService.updateStatus(status);
 
-            return ResponseEntity.ok("Story details updated successfully");
+            return ResponseEntity.ok("Story updated successfully");
         } catch (Exception e) {
             return ResponseEntity.status(400).body("Error: " + e.getMessage());
         }
     }
+
+
+    @DeleteMapping("/deleteStory")
+    public ResponseEntity<?> deleteStory(@RequestParam("id") String storyId,
+                                        @RequestParam("uname") String uname) {
+        try {
+            Status status = statusService.getStatusById(storyId);
+            if (status == null) {
+                return ResponseEntity.status(404).body("Story not found");
+            }
+
+            if (!status.getUname().equals(uname)) {
+                return ResponseEntity.status(403).body("You are not authorized to delete this story");
+            }
+
+            String uploadsDir = "status/";
+            String filePath = uploadsDir + storyId + ".jpg";
+            Path path = Paths.get(filePath);
+            if (Files.exists(path)) {
+                Files.delete(path);
+            }
+
+            statusService.deleteStatusById(storyId);
+            return ResponseEntity.ok("Story deleted successfully");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error deleting story: " + e.getMessage());
+        }
+    }
+
     
 }
+
