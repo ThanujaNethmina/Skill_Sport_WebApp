@@ -3,14 +3,17 @@ import Navbar from "./Navbar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { FiHeart, FiMessageSquare, FiShare2, FiMoreHorizontal, FiEdit, FiTrash2, FiUserPlus, FiUser, FiPlus, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiHeart, FiMessageSquare, FiShare2, FiEdit, FiTrash2, FiUserPlus, FiUser, FiPlus, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { FaHeart, FaRunning, FaSwimmer, FaBasketballBall, FaFutbol } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Home = () => {
+  // ... (other state declarations remain unchanged)
+  const [users, setUsers] = useState([]);
   const [username, setUsername] = useState("");
   const [userId, setUserId] = useState("");
+  const [isFollowing, setIsFollowing] = useState({});
   const [sportCommunities, setSportCommunities] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newCommunity, setNewCommunity] = useState({ name: "", description: "" });
@@ -22,14 +25,15 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
   const navigate = useNavigate();
-
-  // Sample data for athletes to connect with
-  const athletesToConnect = [
-    { id: 1, name: "Alex Johnson", sport: "Basketball", skills: "Shooting, Defense", icon: <FaBasketballBall className="text-orange-500" /> },
-    { id: 2, name: "Maria Garcia", sport: "Soccer", skills: "Dribbling, Passing", icon: <FaFutbol className="text-green-500" /> },
-    { id: 3, name: "James Wilson", sport: "Tennis", skills: "Serve, Volley", icon: <FaRunning className="text-blue-500" /> },
-    { id: 4, name: "Sarah Lee", sport: "Swimming", skills: "Freestyle, Butterfly", icon: <FaSwimmer className="text-cyan-500" /> },
-  ];
+  const [unauthorizedAlert, setUnauthorizedAlert] = useState({
+    show: false,
+    message: ""
+  });
+  const [successAlert, setSuccessAlert] = useState({
+    show: false,
+    message: "",
+    type: "" // 'like', 'comment', 'edit', 'delete'
+  });
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
@@ -43,9 +47,31 @@ const Home = () => {
       navigate("/login");
       return;
     }
-    
+
+    fetchUsers();
     fetchData();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:8080/api/users/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsers(response.data);
+      
+      // Check follow status for each user
+      const followStatus = {};
+      response.data.forEach(user => {
+        followStatus[user.id] = user.isFollowing;
+      });
+      setIsFollowing(followStatus);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -55,6 +81,69 @@ const Home = () => {
       console.error("Error fetching data:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const showUnauthorizedAlert = (message) => {
+    setUnauthorizedAlert({ show: true, message });
+    setTimeout(() => {
+      setUnauthorizedAlert({ show: false, message: "" });
+    }, 5000); // Hide after 5 seconds
+  };
+
+  const showSuccessAlert = (message) => {
+    setSuccessAlert({ show: true, message });
+    setTimeout(() => {
+      setSuccessAlert({ show: false, message: "" });
+    }, 5000); // Hide after 5 seconds
+  };
+
+  const handleFollow = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const res = await axios.post(
+        `http://localhost:8080/api/users/${userId}/follow`,
+        {}, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      if (err.response?.status === 401) {
+        alert("Session expired. Please log in again.");
+        navigate("/login");
+      }
+    }
+  };
+
+  const getSportIcon = (skills) => {
+    if (!skills || !Array.isArray(skills) || skills.length === 0) {
+      return <FiUser className="text-purple-500" />;
+    }
+    const firstSkill = skills[0]?.sport;
+    if (!firstSkill || typeof firstSkill !== 'string') {
+      return <FiUser className="text-purple-500" />;
+    }
+  
+    // Now we can safely call toLowerCase()
+    switch(firstSkill.toLowerCase()) {
+      case 'basketball':
+        return <FaBasketballBall className="text-orange-500" />;
+      case 'soccer':
+        return <FaFutbol className="text-green-500" />;
+      case 'running':
+        return <FaRunning className="text-blue-500" />;
+      case 'swimming':
+        return <FaSwimmer className="text-cyan-500" />;
+      default:
+        return <FiUser className="text-purple-500" />;
     }
   };
 
@@ -210,10 +299,6 @@ const Home = () => {
     }
   };
 
-  const handleEditComment = (comment) => {
-    setEditingComment({ id: comment.id, content: comment.comment });
-  };
-
   const handleUpdateComment = async (commentId) => {
     if (!editingComment.content.trim()) {
       toast.warning("Comment cannot be empty");
@@ -222,6 +307,14 @@ const Home = () => {
 
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId") || token;
+    const username = localStorage.getItem("username");
+
+    // Validate userId presence
+    if (!userId) {
+      toast.error("User ID not found. Please log in again.");
+      navigate("/login");
+      return;
+    }
 
     try {
       await axios.put(
@@ -231,6 +324,7 @@ const Home = () => {
           headers: {
             Authorization: `Bearer ${token}`,
             userId: userId,
+            username: username,
             "Content-Type": "text/plain",
           },
         }
@@ -238,20 +332,42 @@ const Home = () => {
 
       setEditingComment({ id: null, content: "" });
       fetchPublicPosts();
-      toast.success("Comment updated successfully");
+      showSuccessAlert("Comment edited Successfully");
     } catch (error) {
       console.error("Error updating comment:", error);
-      toast.error("You can only edit your own comments");
+      if (error.response?.status === 403) {
+        toast.error("You can only edit your own comments");
+      } else {
+        toast.error("Failed to update comment");
+      }
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
+  const handleEditComment = (comment) => {
+    const currentUserId = localStorage.getItem("userId");
+    console.log("Current User ID:", currentUserId);
+    console.log("Comment User ID:", comment.userId);
+    
+    if (comment.userId !== currentUserId) {
+      showUnauthorizedAlert("You are unauthorized to edit this comment");
+      return;
+    }
+    setEditingComment({ id: comment.id, content: comment.comment });
+  };
+  
+  const handleDeleteComment = async (commentId, commentUserId) => {
+    const currentUserId = localStorage.getItem("userId");
+    if (commentUserId !== currentUserId) {
+      showUnauthorizedAlert("You are unauthorized to delete this comment");
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to delete this comment?")) {
       return;
     }
 
     const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId") || token;
+    const username = localStorage.getItem("username");
 
     try {
       await axios.delete(
@@ -259,18 +375,19 @@ const Home = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            userId: userId,
+            userId: currentUserId,
+            username: username,
+            "Content-Type": "text/plain",
           },
         }
       );
       fetchPublicPosts();
-      toast.success("Comment deleted successfully");
+      showSuccessAlert("Comment Deleted Successfully");
     } catch (error) {
       console.error("Error deleting comment:", error);
-      toast.error("You can only delete your own comments");
+      toast.error("Failed to delete comment");
     }
   };
-
   const handleCancelEdit = () => {
     setEditingComment({ id: null, content: "" });
   };
@@ -299,21 +416,6 @@ const Home = () => {
     }
   };
 
-  const getSportIcon = (sportName) => {
-    switch(sportName.toLowerCase()) {
-      case 'basketball':
-        return <FaBasketballBall className="text-orange-500" />;
-      case 'soccer':
-        return <FaFutbol className="text-green-500" />;
-      case 'tennis':
-        return <FaRunning className="text-blue-500" />;
-      case 'swimming':
-        return <FaSwimmer className="text-cyan-500" />;
-      default:
-        return <FiUser className="text-purple-500" />;
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-blue-50">
@@ -325,6 +427,32 @@ const Home = () => {
   return (
     <>
       <Navbar />
+        {unauthorizedAlert.show && (
+          <div className="fixed top-16 left-0 right-0 z-50 flex justify-center">
+            <div className="bg-red-500 text-white px-6 py-3 rounded-md shadow-lg flex items-center">
+              <span>{unauthorizedAlert.message}</span>
+              <button 
+                onClick={() => setUnauthorizedAlert({ show: false, message: "" })}
+                className="ml-4 text-white hover:text-gray-200"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+        {successAlert.show && (
+          <div className="fixed top-16 left-0 right-0 z-50 flex justify-center">
+            <div className="bg-green-500 text-white px-6 py-3 rounded-md shadow-lg flex items-center">
+              <span>{successAlert.message}</span>
+              <button 
+                onClick={() => setSuccessAlert({ show: false, message: "" })}
+                className="ml-4 text-white hover:text-gray-200"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-8 font-sans">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Header */}
@@ -346,26 +474,42 @@ const Home = () => {
                   Athletes Near You
                 </h2>
                 <ul className="space-y-4">
-                  {athletesToConnect.map((athlete) => (
-                    <li key={athlete.id} className="bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
+                  {users.map((user) => (
+                    <li key={user.id} className="bg-blue-50 rounded-lg p-4 transition-all hover:shadow-md">
                       <div className="flex items-start gap-3">
                         <div className="bg-white p-2 rounded-full shadow-sm">
-                          {athlete.icon}
+                          {getSportIcon(user.skills)}
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-blue-900">{athlete.name}</h3>
+                          <h3 className="font-semibold text-blue-900">{user.username}</h3>
                           <p className="text-sm text-blue-700 flex items-center gap-1">
-                            {athlete.icon}
-                            {athlete.sport}
+                            {user.skills?.length > 0 ? (
+                              <>
+                                {getSportIcon(user.skills)}
+                                {user.skills[0].sport}
+                              </>
+                            ) : "No sport specified"}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">{athlete.skills}</p>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-xs text-gray-500">
+                              {user.followersCount} followers
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {user.followingCount} following
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <button 
-                        className="mt-3 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2"
+                        onClick={() => handleFollow(user.id)}
+                        className={`mt-3 w-full py-2 px-4 rounded-lg text-sm transition-all flex items-center justify-center gap-2 ${
+                          isFollowing[user.id] 
+                            ? "bg-gray-200 text-gray-800 hover:bg-gray-300" 
+                            : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
+                        }`}
                       >
                         <FiUserPlus size={14} />
-                        Connect
+                        {isFollowing[user.id] ? "Following" : "Follow"}
                       </button>
                     </li>
                   ))}
@@ -383,7 +527,7 @@ const Home = () => {
                       onClick={() => setActiveTab("posts")}
                       className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === "posts" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
                     >
-                      Community Posts
+                      Shared Posts
                     </button>
                     <button
                       onClick={() => setActiveTab("activities")}
@@ -491,91 +635,96 @@ const Home = () => {
                                   <span>Share</span>
                                 </button>
                               </div>
-
                               {/* Comments Section */}
                               <div className={`transition-all duration-300 overflow-hidden ${expandedComments[post.id] ? 'max-h-[500px]' : 'max-h-0'}`}>
                                 <div className="mt-4">
                                   {/* Existing Comments */}
-                                  {post.comments && post.comments.length > 0 ? (
-                                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                                      {post.comments.map((comment) => (
-                                        <div key={comment.id} className="flex items-start gap-3 relative group">
-                                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 mt-1">
-                                            {comment.username?.charAt(0).toUpperCase() || "U"}
-                                          </div>
-                                          <div className="flex-1 bg-blue-50 p-3 rounded-lg">
-                                            {editingComment.id === comment.id ? (
-                                              <div>
-                                                <textarea
-                                                  value={editingComment.content}
-                                                  onChange={(e) => setEditingComment({
-                                                    ...editingComment,
-                                                    content: e.target.value
-                                                  })}
-                                                  className="w-full p-2 border border-blue-200 rounded mb-2 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-                                                  rows="3"
-                                                  autoFocus
-                                                />
-                                                <div className="flex justify-end gap-2">
-                                                  <button
-                                                    onClick={handleCancelEdit}
-                                                    className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300 transition"
-                                                  >
-                                                    Cancel
-                                                  </button>
-                                                  <button
-                                                    onClick={() => handleUpdateComment(comment.id)}
-                                                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                                                  >
-                                                    Update
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <>
-                                                <div className="flex justify-between">
-                                                  <span className="font-medium text-blue-900">
-                                                    {comment.username}
-                                                  </span>
-                                                  <span className="text-xs text-gray-400">
-                                                    {comment.createdAt &&
-                                                      formatDistanceToNow(new Date(comment.createdAt), {
-                                                        addSuffix: true,
-                                                      })}
-                                                  </span>
-                                                </div>
-                                                <p className="text-gray-600 mt-1 whitespace-pre-wrap">
-                                                  {comment.comment}
-                                                </p>
-                                                {comment.isCurrentUser && (
-                                                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                      onClick={() => handleEditComment(comment)}
-                                                      className="text-blue-600 hover:text-blue-800 p-1 transition"
-                                                      title="Edit comment"
-                                                    >
-                                                      <FiEdit size={16} />
-                                                    </button>
-                                                    <button
-                                                      onClick={() => handleDeleteComment(comment.id)}
-                                                      className="text-red-600 hover:text-red-800 p-1 transition"
-                                                      title="Delete comment"
-                                                    >
-                                                      <FiTrash2 size={16} />
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </>
-                                            )}
-                                          </div>
+                                {post.comments && post.comments.length > 0 ? (
+                                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                                    {post.comments.map((comment) => (
+                                      <div key={comment.id} className="flex items-start gap-3 relative group">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 mt-1">
+                                          {comment.username?.charAt(0).toUpperCase() || "U"}
                                         </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-gray-400 italic text-center py-4">
-                                      No comments yet. Be the first to comment!
-                                    </p>
-                                  )}
+                                        <div className="flex-1 bg-blue-50 p-3 rounded-lg relative">
+                                          {editingComment.id === comment.id ? (
+                                            <div>
+                                              <textarea
+                                                value={editingComment.content}
+                                                onChange={(e) => setEditingComment({
+                                                  ...editingComment,
+                                                  content: e.target.value
+                                                })}
+                                                className="w-full p-2 border border-blue-200 rounded mb-2 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                                                rows="3"
+                                                autoFocus
+                                              />
+                                              <div className="flex justify-end gap-2">
+                                                <button
+                                                  onClick={handleCancelEdit}
+                                                  className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300 transition"
+                                                >
+                                                  Cancel
+                                                </button>
+                                                <button
+                                                  onClick={() => handleUpdateComment(comment.id)}
+                                                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                                >
+                                                  Update
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <div className="flex justify-between items-center mb-1">
+                                                <span className="font-medium text-blue-900">
+                                                  {comment.username}
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                  {comment.createdAt &&
+                                                    formatDistanceToNow(new Date(comment.createdAt), {
+                                                      addSuffix: true,
+                                                    })}
+                                                </span>
+                                              </div>
+                                              <p className="text-gray-600 mt-1 whitespace-pre-wrap">
+                                                {comment.comment}
+                                              </p>
+
+                                                <div className="absolute top-2 right-2 flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                  <button
+                                                    onClick={() => handleEditComment(comment)}
+                                                    className="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:scale-110 transition-all duration-200 relative group/edit"
+                                                    title="Edit comment"
+                                                  >
+                                                    <FiEdit size={16} />
+                                                    <span className="absolute hidden group-hover/edit:block -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2">
+                                                      Edit
+                                                    </span>
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleDeleteComment(comment.id, comment.userId)}
+                                                    className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:scale-110 transition-all duration-200 relative group/delete"
+                                                    title="Delete comment"
+                                                  >
+                                                    <FiTrash2 size={16} />
+                                                    <span className="absolute hidden group-hover/delete:block -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2">
+                                                      Delete
+                                                    </span>
+                                                  </button>
+                                                </div>
+                                    
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-400 italic text-center py-4">
+                                    No comments yet. Be the first to comment!
+                                  </p>
+                                )}
 
                                   {/* Comment Form */}
                                   <form
