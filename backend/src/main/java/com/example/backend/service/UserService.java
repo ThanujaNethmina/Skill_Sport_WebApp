@@ -56,8 +56,7 @@ public class UserService {
 
         userRepo.save(user);
         String token = jwtService.generateToken(user);
-        String welcomeMessage = "Welcome back, " + user.getUsername() + "!";
-        return new AuthResponse(token, welcomeMessage, user.getId());
+        return new AuthResponse(token);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -70,12 +69,12 @@ public class UserService {
 
         String token = jwtService.generateToken(user);
         String welcomeMessage = "Welcome back, " + user.getUsername() + "!";
-        return new AuthResponse(token, welcomeMessage, user.getId());
+        return new AuthResponse(token, welcomeMessage);
     }
 
     public AuthResponse googleLogin(Map<String, String> body) {
         String idTokenString = body.get("token");
-    
+
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     GoogleNetHttpTransport.newTrustedTransport(),
@@ -83,33 +82,31 @@ public class UserService {
                     .setAudience(Collections
                             .singletonList("661135922934-bq9m34un9dn036j3jtjunvejlitd4ide.apps.googleusercontent.com"))
                     .build();
-    
+
             GoogleIdToken idToken = verifier.verify(idTokenString);
             if (idToken != null) {
                 Payload payload = idToken.getPayload();
-    
+
                 String email = payload.getEmail();
                 String name = (String) payload.get("name");
-    
+
                 User user = userRepo.findByEmail(email).orElseGet(() -> {
                     User newUser = new User();
                     newUser.setEmail(email);
                     newUser.setUsername(name);
                     return userRepo.save(newUser);
                 });
-    
+
                 String jwt = jwtService.generateToken(user);
-                String welcomeMessage = "Welcome back, " + user.getUsername() + "!";
-                return new AuthResponse(jwt, welcomeMessage, user.getId()); // 👈 Include userId
+                return new AuthResponse(jwt, "Welcome back, " + user.getUsername() + "!");
             } else {
                 throw new RuntimeException("Invalid Google ID token");
             }
-    
+
         } catch (GeneralSecurityException | IOException e) {
             throw new RuntimeException("Google token verification failed", e);
         }
     }
-    
 
     // Profile methods
     public User getCurrentUserProfile() {
