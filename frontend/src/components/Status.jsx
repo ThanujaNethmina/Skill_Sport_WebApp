@@ -1,3 +1,5 @@
+// Story.jsx
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ImageUploader from "./ImageUploader";
@@ -12,14 +14,15 @@ const Story = () => {
   const [imageFile, setImageFile] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [viewingIndex, setViewingIndex] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [showViewerMenu, setShowViewerMenu] = useState(false);
   const [autoPlayTimer, setAutoPlayTimer] = useState(null);
   const [progress, setProgress] = useState(0);
   const [editDescription, setEditDescription] = useState("");
+  const [editMode, setEditMode] = useState(false);
 
   const userId = localStorage.getItem("userId");
-  const username = localStorage.getItem("username");
+  const rawUsername = localStorage.getItem("username");
+  const username = rawUsername ? rawUsername.trim() : "";
   const token = localStorage.getItem("token");
 
   const fetchStories = async () => {
@@ -72,9 +75,7 @@ const Story = () => {
     fetchStories();
   }, []);
 
-  const userStories = stories.filter((s) => s.userId === userId);
-  const otherStories = stories.filter((s) => s.userId !== userId);
-  const allStories = [...userStories, ...otherStories];
+  const allStories = [...stories];
 
   useEffect(() => {
     let progressInterval;
@@ -101,19 +102,27 @@ const Story = () => {
     }
   }, [viewingIndex, allStories.length]);
 
-  const handleUpdateStory = async () => {
+  const handleUpdateClick = () => {
+    setEditMode(true);
+    setShowViewerMenu(false);
+    clearTimeout(autoPlayTimer);
+  };
+
+  const handleSaveUpdate = async () => {
     try {
-      const storyId = stories[viewingIndex].id;
+      const story = allStories[viewingIndex];
+      if (!story) return;
+
       await axios.patch("http://localhost:8080/api/story/updateStory", {
-        id: storyId,
+        id: story.id,
         description: editDescription,
-        uname: username,
+        uname: story.uname,
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       toast.success("Status updated successfully");
-      setShowViewerMenu(false);
+      setEditMode(false);
       fetchStories();
     } catch (error) {
       toast.error("Failed to update status");
@@ -122,12 +131,14 @@ const Story = () => {
 
   const handleDeleteStory = async () => {
     try {
-      const storyId = allStories[viewingIndex].id;
+      const story = allStories[viewingIndex];
+      if (!story) return;
+
       await axios.delete("http://localhost:8080/api/story/deleteStory", {
-        params: { id: storyId, uname: username },
+        params: { id: story.id, uname: story.uname },
         headers: { Authorization: `Bearer ${token}` },
-      });   
-      toast.success("Status deleted successfully ✅");   
+      });
+      toast.success("Status deleted successfully ✅");
       setViewingIndex(null);
       setShowViewerMenu(false);
       fetchStories();
@@ -136,23 +147,26 @@ const Story = () => {
     }
   };
 
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setEditDescription(allStories[viewingIndex].description);
+  };
+
   return (
     <div className="bg-white p-4 mb-6 rounded-xl shadow-md">
       <ToastContainer position="bottom-center" autoClose={3000} />
       <h2 className="text-xl font-bold text-blue-700 mb-4">Statuses</h2>
 
       <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
-        {userStories.length === 0 && (
-          <div
-            className="flex-shrink-0 w-28 h-48 rounded-lg bg-blue-100 flex flex-col justify-center items-center text-blue-700 hover:bg-blue-200 cursor-pointer relative"
-            onClick={() => setShowModal(true)}
-          >
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white text-blue-700 shadow-md">
-              <FiPlus size={24} />
-            </div>
-            <span className="text-sm mt-2 font-medium">Add Status</span>
+        <div
+          className="flex-shrink-0 w-28 h-48 rounded-lg bg-blue-100 flex flex-col justify-center items-center text-blue-700 hover:bg-blue-200 cursor-pointer relative"
+          onClick={() => setShowModal(true)}
+        >
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white text-blue-700 shadow-md">
+            <FiPlus size={24} />
           </div>
-        )}
+          <span className="text-sm mt-2 font-medium">Add Status</span>
+        </div>
 
         {allStories.map((story, index) => (
           <div
@@ -162,6 +176,7 @@ const Story = () => {
               setViewingIndex(index);
               setEditDescription(story.description);
               setShowViewerMenu(false);
+              setEditMode(false);
             }}
           >
             <img
@@ -173,12 +188,12 @@ const Story = () => {
               <p className="text-xs text-white font-semibold truncate">{story.uname}</p>
             </div>
 
-            {story.uname === username && (
+            {story.uname.trim() === username && (
               <div
                 className="absolute top-1 right-1 text-white cursor-pointer z-10"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowDropdown((prev) => !prev);
+                  setShowViewerMenu((prev) => !prev);
                 }}
               >
                 <HiOutlineDotsVertical size={18} />
@@ -221,100 +236,107 @@ const Story = () => {
       )}
 
       {viewingIndex !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-          <div className="relative w-[360px] h-[640px] bg-black rounded-xl overflow-hidden shadow-lg">
-            <div className="w-full h-1 bg-gray-700 absolute top-0 left-0 z-20">
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+        <div className="relative w-[360px] h-[640px] bg-black rounded-xl overflow-hidden shadow-lg flex flex-col justify-between">
+          
+          {/* Progress Bar */}
+          <div className="w-full h-1 bg-gray-700 absolute top-0 left-0 z-20">
+            <div
+              className="h-full bg-blue-500 transition-all duration-100 linear"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={() => {
+              setViewingIndex(null);
+              clearTimeout(autoPlayTimer);
+              setEditMode(false);
+            }}
+            className="absolute top-2 right-2 text-white bg-red-500 p-1 rounded-full hover:bg-red-600 z-40"
+          >
+            <FiX size={20} />
+          </button>
+
+          {/* Menu Icon */}
+          {allStories[viewingIndex].uname.trim() === username && (
+            <>
               <div
-                className="h-full bg-blue-500 transition-all duration-100 linear"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
+                className="absolute top-2 right-12 flex items-center justify-center w-8 h-8 bg-black bg-opacity-60 text-white rounded-full z-50 cursor-pointer hover:bg-opacity-80"
+                onClick={() => setShowViewerMenu((prev) => !prev)}
+              >
+                <HiOutlineDotsVertical size={18} />
+              </div>
 
-            <button
-              onClick={() => {
-                setViewingIndex(null);
-                clearTimeout(autoPlayTimer);
-              }}
-              className="absolute top-2 right-2 text-white bg-red-500 p-1 rounded-full hover:bg-red-600 z-40"
-            >
-              <FiX size={20} />
-            </button>
-
-            {allStories[viewingIndex].uname === username && (
-              <>
-                <div
-                  className="absolute top-2 right-12 flex items-center justify-center w-8 h-8 bg-black bg-opacity-60 text-white rounded-full z-50 cursor-pointer hover:bg-opacity-80"
-                  onClick={() => setShowViewerMenu((prev) => !prev)}
-                >
-                  <HiOutlineDotsVertical size={18} />
+              {showViewerMenu && (
+                <div className="absolute top-12 right-12 bg-white text-sm rounded shadow z-50">
+                  <button
+                    onClick={handleUpdateClick}
+                    className="block px-4 py-2 text-blue-600 hover:bg-gray-100 w-full text-left"
+                  >
+                    Update Status
+                  </button>
+                  <button
+                    onClick={handleDeleteStory}
+                    className="block px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left"
+                  >
+                    Delete Status
+                  </button>
                 </div>
+              )}
+            </>
+          )}
 
-                {showViewerMenu && (
-                  <div className="absolute top-12 right-12 bg-white text-sm rounded shadow z-50">
-                    <button
-                      onClick={handleUpdateStory}
-                      className="block px-4 py-2 text-blue-600 hover:bg-gray-100 w-full text-left"
-                    >
-                      Update Status
-                    </button>
-                    <button
-                      onClick={handleDeleteStory}
-                      className="block px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left"
-                    >
-                      Delete Status
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+          {/* Username */}
+          <div className="absolute top-3 left-3 z-20 bg-black bg-opacity-40 px-3 py-1 rounded-full">
+            <p className="text-sm text-white font-semibold">
+              {allStories[viewingIndex].uname}
+            </p>
+          </div>
 
-            <div className="absolute top-3 left-3 z-20 bg-black bg-opacity-40 px-3 py-1 rounded-full">
-              <p className="text-sm text-white font-semibold">
-                {allStories[viewingIndex].uname}
-              </p>
-            </div>
-
+          {/* Story Image Display */}
+          <div className="flex-grow flex items-center justify-center bg-black px-2 pt-6 pb-4">
             <img
               src={`http://localhost:8080/status/${allStories[viewingIndex].id}.jpg`}
               alt="Status"
-              className="w-full h-full object-cover"
+              className="max-h-full max-w-full object-contain"
             />
+          </div>
 
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 p-4 text-white text-sm font-medium text-center">
-              {allStories[viewingIndex].userId === userId ? (
+          {/* Description or Edit Field */}
+          <div className="bg-black bg-opacity-60 p-4 text-white text-sm font-medium text-center">
+            {editMode ? (
+              <>
                 <input
                   type="text"
-                  className="w-full text-center bg-transparent border-none outline-none text-white"
+                  className="w-full text-center bg-white text-black rounded px-2 py-1 mb-2"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                 />
-              ) : (
-                allStories[viewingIndex].description
-              )}
-            </div>
-
-            {/* Navigation Areas */}
-            <div
-              className="absolute top-0 left-0 h-full w-1/3 cursor-pointer"
-              onClick={() => {
-                clearTimeout(autoPlayTimer);
-                setViewingIndex((prev) =>
-                  prev > 0 ? prev - 1 : allStories.length - 1
-                );
-              }}
-            />
-            <div
-              className="absolute top-0 right-0 h-full w-1/3 cursor-pointer"
-              onClick={() => {
-                clearTimeout(autoPlayTimer);
-                setViewingIndex((prev) =>
-                  prev < allStories.length - 1 ? prev + 1 : 0
-                );
-              }}
-            />
+                <div className="flex justify-center gap-3 mt-2">
+                  <button
+                    onClick={handleSaveUpdate}
+                    className="bg-green-600 px-3 py-1 rounded text-white hover:bg-green-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="bg-gray-600 px-3 py-1 rounded text-white hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              allStories[viewingIndex].description
+            )}
           </div>
         </div>
-      )}
+      </div>
+    )}
+
     </div>
   );
 };
